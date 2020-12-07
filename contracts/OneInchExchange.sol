@@ -130,6 +130,7 @@ contract OneInchExchange is Ownable, Pausable {
 
         if (flags & _PARTIAL_FILL != 0) {
             spentAmount = initialSrcBalance.add(desc.amount).sub(srcToken.uniBalanceOf(msg.sender));
+            require(returnAmount > 0, "Return amount is zero");
             require(returnAmount.mul(desc.amount) >= desc.minReturnAmount.mul(spentAmount), "Return amount is not enough");
         } else {
             require(returnAmount >= desc.minReturnAmount, "Return amount is not enough");
