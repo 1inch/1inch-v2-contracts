@@ -57,7 +57,7 @@ contract OneInchExchange is Ownable, Pausable {
     function discountedSwap(
         IOneInchCaller caller,
         SwapDescription calldata desc,
-        IOneInchCaller.CallDescription[] calldata calls
+        bytes calldata data
     )
         external
         payable
@@ -75,14 +75,14 @@ contract OneInchExchange is Ownable, Pausable {
         }
 
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory data) = address(this).delegatecall(abi.encodeWithSelector(this.swap.selector, caller, desc, calls));
+        (bool success, bytes memory returnData) = address(this).delegatecall(abi.encodeWithSelector(this.swap.selector, caller, desc, data));
         if (success) {
-            returnAmount = abi.decode(data, (uint256));
+            returnAmount = abi.decode(returnData, (uint256));
         } else {
             if (msg.value > 0) {
                 msg.sender.transfer(msg.value);
             }
-            emit Error(RevertReasonParser.parse(data, "Swap failed: "));
+            emit Error(RevertReasonParser.parse(returnData, "Swap failed: "));
         }
 
         (IChi chi, uint256 amount) = caller.calculateGas(initialGas.sub(gasleft()), desc.flags, msg.data.length);
@@ -94,7 +94,7 @@ contract OneInchExchange is Ownable, Pausable {
     function swap(
         IOneInchCaller caller,
         SwapDescription calldata desc,
-        IOneInchCaller.CallDescription[] calldata calls
+        bytes calldata data
     )
         external
         payable
@@ -102,7 +102,7 @@ contract OneInchExchange is Ownable, Pausable {
         returns (uint256 returnAmount)
     {
         require(desc.minReturnAmount > 0, "Min return should not be 0");
-        require(calls.length > 0, "Call data should exist");
+        require(data.length > 0, "data should be not zero");
 
         uint256 flags = desc.flags;
         IERC20 srcToken = desc.srcToken;
@@ -123,7 +123,11 @@ contract OneInchExchange is Ownable, Pausable {
         uint256 initialSrcBalance = (flags & _PARTIAL_FILL != 0) ? srcToken.uniBalanceOf(msg.sender) : 0;
         uint256 initialDstBalance = dstToken.uniBalanceOf(dstReceiver);
 
-        caller.makeCalls{value: msg.value}(calls);
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, bytes memory result) = address(caller).call{value: msg.value}(abi.encodePacked(caller.callBytes.selector, data));
+        if (!success) {
+            revert(RevertReasonParser.parse(result, "OneInchCaller callBytes failed: "));
+        }
 
         uint256 spentAmount = desc.amount;
         returnAmount = dstToken.uniBalanceOf(dstReceiver).sub(initialDstBalance);
