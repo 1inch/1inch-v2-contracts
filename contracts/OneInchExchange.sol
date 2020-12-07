@@ -86,7 +86,9 @@ contract OneInchExchange is Ownable, Pausable {
         }
 
         (IChi chi, uint256 amount) = caller.calculateGas(initialGas.sub(gasleft()), desc.flags, msg.data.length);
-        chi.freeFromUpTo(chiSource, amount);
+        if (amount > 0) {
+            chi.freeFromUpTo(chiSource, amount);
+        }
     }
 
     function swap(
