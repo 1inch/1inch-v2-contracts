@@ -37,7 +37,7 @@ library RevertReasonParser {
             return string(abi.encodePacked(prefix, "Panic(", _toHex(code), ")"));
         }
 
-        return string(abi.encodePacked(prefix, "Unknown()"));
+        return string(abi.encodePacked(prefix, "Unknown(", _toHex(data), ")"));
     }
 
     function _toHex(uint256 value) private pure returns(string memory) {
