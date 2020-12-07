@@ -176,7 +176,7 @@ contract OneInchExchange is Ownable, Pausable {
         token.uniTransfer(msg.sender, amount);
     }
 
-    function pause() external onlyOwner {
+    function shutdown() external onlyOwner {
         _pause();
     }
 }
