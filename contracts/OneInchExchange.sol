@@ -167,7 +167,12 @@ contract OneInchExchange is Ownable, Pausable {
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, bytes memory result) = address(token).call(abi.encodeWithSelector(IERC20Permit.permit.selector, permit));
             if (!success) {
-                revert(RevertReasonParser.parse(result, "Permit call failed: "));
+                string memory reason = RevertReasonParser.parse(result, "Permit call failed: ");
+                if (token.allowance(msg.sender, address(this)) < amount) {
+                    revert(reason);
+                } else {
+                    emit Error(reason);
+                }
             }
         }
 
